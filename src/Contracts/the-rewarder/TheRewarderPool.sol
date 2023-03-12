@@ -52,7 +52,13 @@ contract TheRewarderPool {
         accToken.mint(msg.sender, amountToDeposit);
         distributeRewards();
 
-        if (!liquidityToken.transferFrom(msg.sender, address(this), amountToDeposit)) revert TransferFail();
+        if (
+            !liquidityToken.transferFrom(
+                msg.sender,
+                address(this),
+                amountToDeposit
+            )
+        ) revert TransferFail();
     }
 
     function withdraw(uint256 amountToWithdraw) external {
@@ -69,8 +75,13 @@ contract TheRewarderPool {
             _recordSnapshot();
         }
 
-        uint256 totalDeposits = accToken.totalSupplyAt(lastSnapshotIdForRewards);
-        uint256 amountDeposited = accToken.balanceOfAt(msg.sender, lastSnapshotIdForRewards);
+        uint256 totalDeposits = accToken.totalSupplyAt(
+            lastSnapshotIdForRewards
+        );
+        uint256 amountDeposited = accToken.balanceOfAt(
+            msg.sender,
+            lastSnapshotIdForRewards
+        );
 
         if (amountDeposited > 0 && totalDeposits > 0) {
             rewards = (amountDeposited * 100 * 10 ** 18) / totalDeposits;
@@ -91,13 +102,15 @@ contract TheRewarderPool {
     }
 
     function _hasRetrievedReward(address account) private view returns (bool) {
-        return (
-            lastRewardTimestamps[account] >= lastRecordedSnapshotTimestamp
-                && lastRewardTimestamps[account] <= lastRecordedSnapshotTimestamp + REWARDS_ROUND_MIN_DURATION
-        );
+        return (lastRewardTimestamps[account] >=
+            lastRecordedSnapshotTimestamp &&
+            lastRewardTimestamps[account] <=
+            lastRecordedSnapshotTimestamp + REWARDS_ROUND_MIN_DURATION);
     }
 
     function isNewRewardsRound() public view returns (bool) {
-        return block.timestamp >= lastRecordedSnapshotTimestamp + REWARDS_ROUND_MIN_DURATION;
+        return
+            block.timestamp >=
+            lastRecordedSnapshotTimestamp + REWARDS_ROUND_MIN_DURATION;
     }
 }

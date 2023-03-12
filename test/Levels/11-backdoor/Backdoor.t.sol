@@ -43,7 +43,9 @@ contract Backdoor is Test {
         vm.label(charlie, "Charlie");
         vm.label(david, "David");
 
-        attacker = payable(address(uint160(uint256(keccak256(abi.encodePacked("attacker"))))));
+        attacker = payable(
+            address(uint160(uint256(keccak256(abi.encodePacked("attacker")))))
+        );
         vm.label(attacker, "Attacker");
 
         // Deploy Gnosis Safe master copy and factory contracts
@@ -84,7 +86,9 @@ contract Backdoor is Test {
          * EXPLOIT END *
          */
         validation();
-        console.log(unicode"\n🎉 Congratulations, you can go to the next level! 🎉");
+        console.log(
+            unicode"\n🎉 Congratulations, you can go to the next level! 🎉"
+        );
     }
 
     function validation() internal {
