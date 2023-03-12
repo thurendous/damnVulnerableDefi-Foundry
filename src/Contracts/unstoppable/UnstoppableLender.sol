@@ -42,7 +42,10 @@ contract UnstoppableLender is ReentrancyGuard {
 
         damnValuableToken.transfer(msg.sender, borrowAmount);
 
-        IReceiver(msg.sender).receiveTokens(address(damnValuableToken), borrowAmount);
+        IReceiver(msg.sender).receiveTokens(
+            address(damnValuableToken),
+            borrowAmount
+        );
 
         uint256 balanceAfter = damnValuableToken.balanceOf(address(this));
         if (balanceAfter < balanceBefore) revert FlashLoanHasNotBeenPaidBack();

@@ -21,13 +21,19 @@ contract NaiveReceiverLenderPool is ReentrancyGuard {
         return FIXED_FEE;
     }
 
-    function flashLoan(address borrower, uint256 borrowAmount) external nonReentrant {
+    function flashLoan(
+        address borrower,
+        uint256 borrowAmount
+    ) external nonReentrant {
         uint256 balanceBefore = address(this).balance;
         if (balanceBefore < borrowAmount) revert NotEnoughETHInPool();
         if (!borrower.isContract()) revert BorrowerMustBeADeployedContract();
 
         // Transfer ETH and handle control to receiver
-        borrower.functionCallWithValue(abi.encodeWithSignature("receiveEther(uint256)", FIXED_FEE), borrowAmount);
+        borrower.functionCallWithValue(
+            abi.encodeWithSignature("receiveEther(uint256)", FIXED_FEE),
+            borrowAmount
+        );
 
         if (address(this).balance < balanceBefore + FIXED_FEE) {
             revert FlashLoanHasNotBeenPaidBack();
