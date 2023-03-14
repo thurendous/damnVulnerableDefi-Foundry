@@ -69,7 +69,7 @@ contract TheRewarderPool {
     }
 
     function distributeRewards() public returns (uint256) {
-        uint256 rewards = 0;
+        uint256 rewards; // no need to set the value to 0
 
         if (isNewRewardsRound()) {
             _recordSnapshot();

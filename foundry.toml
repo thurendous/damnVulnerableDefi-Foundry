@@ -2,6 +2,9 @@
 verbosity = 3
 fs_permissions = [{ access = "read", path = "./" }]
 
+[fmt]
+bracket_spacing = true
+
 ## set only when the `hardhat` profile is selected
 [profile.hardhat]
 src = "contracts"

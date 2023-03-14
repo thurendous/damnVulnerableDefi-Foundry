@@ -25,12 +25,14 @@ contract FlashLoanerPool is ReentrancyGuard {
 
     function flashLoan(uint256 amount) external nonReentrant {
         uint256 balanceBefore = liquidityToken.balanceOf(address(this));
-        if (amount > balanceBefore) revert NotEnoughTokensInPool();
-        if (!msg.sender.isContract()) revert BorrowerMustBeAContract();
+        if (amount > balanceBefore) revert NotEnoughTokensInPool(); // check balance is enough
+        if (!msg.sender.isContract()) revert BorrowerMustBeAContract(); // check is contract
 
         liquidityToken.transfer(msg.sender, amount);
 
-        msg.sender.functionCall(abi.encodeWithSignature("receiveFlashLoan(uint256)", amount));
+        msg.sender.functionCall(
+            abi.encodeWithSignature("receiveFlashLoan(uint256)", amount)
+        );
 
         if (liquidityToken.balanceOf(address(this)) < balanceBefore) {
             revert FlashLoanHasNotBeenPaidBack();

